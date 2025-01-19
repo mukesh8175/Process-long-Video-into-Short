@@ -40,7 +40,7 @@ def validate_file(path, file_type):
 # Paths
 input_video_path = r"C:\Users\amuke\Downloads\WhatsApp Video 2025-01-17 at 18.49.33.mp4"
 background_music_path = r"C:\Users\amuke\Downloads\teri-ye-adaa-romantic-song-206526.mp3"
-output_video_path = "output_video_with_music.mp4"
+output_video_path = "Short_video.mp4"
 
 # Validate input files
 validate_file(input_video_path, "video")

@@ -1,6 +1,7 @@
 from PIL import Image, ImageDraw, ImageFont
 from moviepy.editor import VideoFileClip, concatenate_videoclips, ImageClip, CompositeVideoClip, AudioFileClip
 import numpy as np
+import os
 
 # Function to create a text image using Pillow
 def create_text_image(text, size, color, font_path="arial.ttf"):
@@ -21,6 +22,7 @@ def create_text_image(text, size, color, font_path="arial.ttf"):
     try:
         font = ImageFont.truetype(font_path, 50)  # Adjust font size
     except OSError:
+        print("Font not found. Using default font.")
         font = ImageFont.load_default()  # Fallback to default font
     
     # Calculate text size using textbbox
@@ -30,13 +32,22 @@ def create_text_image(text, size, color, font_path="arial.ttf"):
     draw.text(position, text, fill=color, font=font)
     return img
 
+# Validate file paths
+def validate_file(path, file_type):
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"The {file_type} file does not exist: {path}")
+
 # Paths
-input_video_path = r"C:\Users\amuke\Downloads\WhatsApp Video 2025-01-17 at 18.49.33.mp4"  # Replace with your video path
-background_music_path = r"C:\Users\amuke\Downloads\Tera_Nasha_14.mp3"  # Replace with your music file path
+input_video_path = r"C:\Users\amuke\Downloads\WhatsApp Video 2025-01-17 at 18.49.33.mp4"
+background_music_path = r"C:\Users\amuke\Downloads\teri-ye-adaa-romantic-song-206526.mp3"
 output_video_path = "output_video_with_music.mp4"
 
+# Validate input files
+validate_file(input_video_path, "video")
+validate_file(background_music_path, "audio")
+
 # Define the interesting parts of the video (start and end times in seconds)
-clip_intervals = [(15, 40)]  # Example intervals
+clip_intervals = [(2, 15),(22,25),(36,42),(44,55),]   # Example intervals
 clips = []
 
 # Load and crop clips
@@ -56,7 +67,8 @@ for i, (start, end) in enumerate(clip_intervals):
     # Create a text image
     text_image = create_text_image(f"Scene {i+1}", video_size, "white")
     text_clip = ImageClip(np.array(text_image)).set_duration(end - start).set_position("center")
-    text_clip = text_clip.set_start(sum(end - start for _, start in clip_intervals[:i]))  # Set start time
+    # Set start time based on accumulated duration of previous clips
+    text_clip = text_clip.set_start(sum(end - start for start, end in clip_intervals[:i]))
     text_clips.append(text_clip)
 
 # Combine text overlays with the video
@@ -64,9 +76,18 @@ final_video = CompositeVideoClip([final_clip, *text_clips])
 
 # Add background music
 background_music = AudioFileClip(background_music_path)
+
+# Ensure the background music's time range is within the clip duration
+audio_duration = background_music.duration
+if audio_duration < final_video.duration:
+    # Loop audio if it's shorter than the video
+    background_music = background_music.fx(lambda a: a.audio_loop(final_video.duration))
+else:
+    # Trim audio to the video duration if it exceeds
+    background_music = background_music.subclip(0, final_video.duration)
+
 final_video = final_video.set_audio(background_music.set_duration(final_video.duration))
 
 # Write the output video
-final_video.write_videofile(output_video_path, codec="libx264", fps=24)
-
+final_video.write_videofile(output_video_path, codec="libx264", fps=24, bitrate="3000k", audio_codec="aac")
 
